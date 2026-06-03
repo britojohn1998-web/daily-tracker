@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#020817"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Daily Tracker"/>
+<title>Daily Tracker</title>
+<link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;Daily Tracker&quot;,&quot;short_name&quot;:&quot;Tracker&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;%23020817&quot;,&quot;theme_color&quot;:&quot;%23a855f7&quot;,&quot;start_url&quot;:&quot;.&quot;}"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{margin:0;background:#020817;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#f1f5f9;overscroll-behavior:none;}
+input,select,textarea{font-family:inherit;}
+::-webkit-scrollbar{display:none;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect}=React;
+
+const TABS=["Overview","Workout","Meals","Trading","Habits","Budget","Analytics"];
+const PHASE_COLORS={1:"#00e5ff",2:"#ff6b35",3:"#a855f7"};
+
+const WORKOUT_PLAN={
+  phase1:{label:"Phase 1 — Foundation",months:"Month 1–2",days:3,days_per_week:["Day A (Upper+Core)","Day B (ACL Rehab+Legs)","Day C (Full Upper+Core)"],schedules:{"Day A":[{name:"Wall Push-ups",sets:3,reps:10},{name:"Knee Push-ups",sets:3,reps:8},{name:"Shoulder Tap Plank",sets:3,reps:"10 each"},{name:"Seated Dumbbell Curl",sets:3,reps:12},{name:"Tricep Dips (Chair)",sets:3,reps:10},{name:"Dead Bug",sets:3,reps:"8 each"},{name:"Bird Dog",sets:3,reps:"10 each"}],"Day B":[{name:"Straight Leg Raise",sets:3,reps:"15 each",acl:true},{name:"Inner Thigh Squeeze",sets:3,reps:20,acl:true},{name:"Calf Raises (Both)",sets:3,reps:15,acl:true},{name:"Terminal Knee Extension",sets:3,reps:15,acl:true},{name:"Side-lying Hip Abduction",sets:3,reps:"15 each",acl:true},{name:"Glute Bridge (Bilateral)",sets:3,reps:12,acl:true},{name:"Seated Knee Extension",sets:3,reps:12,acl:true}],"Day C":[{name:"Push-ups (Progress)",sets:3,reps:10},{name:"Superman Hold",sets:3,reps:10},{name:"Plank Hold",sets:3,reps:"20 sec"},{name:"Lateral Raises (Bottles)",sets:3,reps:12},{name:"Bent Over Row (Band)",sets:3,reps:12},{name:"Russian Twist (Modified)",sets:3,reps:"10 each"},{name:"Lying Leg Raise",sets:3,reps:12}]}},
+  phase2:{label:"Phase 2 — Strength",months:"Month 3–4",days:4,days_per_week:["Day A (Chest+Triceps+Core)","Day B (Back+Biceps)","Day C (ACL+Legs)","Day D (Shoulders+Core)"],schedules:{"Day A":[{name:"Full Push-ups",sets:4,reps:12},{name:"Wide Push-ups",sets:3,reps:10},{name:"Diamond Push-ups",sets:3,reps:8},{name:"Tricep Overhead Extension",sets:3,reps:12},{name:"Plank to Downward Dog",sets:3,reps:10},{name:"Plank Hold",sets:3,reps:"45 sec"},{name:"Leg Raises",sets:3,reps:15}],"Day B":[{name:"Band Pull-Apart",sets:4,reps:15},{name:"Band Row (Seated)",sets:4,reps:12},{name:"Dumbbell Bicep Curl",sets:3,reps:12},{name:"Hammer Curl",sets:3,reps:10},{name:"Band Face Pull",sets:3,reps:15},{name:"Superman Pulse",sets:3,reps:15},{name:"Dead Bug",sets:3,reps:"10 each"}],"Day C":[{name:"Straight Leg Raise + Ankle Wt",sets:4,reps:15,acl:true},{name:"Single Leg Glute Bridge (L)",sets:3,reps:12,acl:true},{name:"Terminal Knee Ext + Band",sets:4,reps:15,acl:true},{name:"Hip Abduction + Ankle Wt",sets:3,reps:"15 each",acl:true},{name:"Seated Calf Raise",sets:3,reps:20,acl:true},{name:"Mini Band Walk (Lateral)",sets:3,reps:"10 each",acl:true},{name:"Wall Sit (45° only)",sets:3,reps:"20 sec",caution:true}],"Day D":[{name:"Dumbbell Shoulder Press",sets:4,reps:12},{name:"Lateral Raises",sets:3,reps:15},{name:"Front Raises",sets:3,reps:12},{name:"Arnold Press",sets:3,reps:10},{name:"Russian Twist + Weight",sets:3,reps:"15 each"},{name:"Bicycle Crunches",sets:3,reps:"20 each"},{name:"Hollow Body Hold",sets:3,reps:"20 sec"}]}},
+  phase3:{label:"Phase 3 — Advanced",months:"Month 5–6",days:5,days_per_week:["Day A (Chest+Core)","Day B (Back+Biceps)","Day C (Legs+ACL Adv)","Day D (Shoulders+Arms)","Day E (Full Body+Cardio)"],schedules:{"Day A":[{name:"Push-up Variations Superset",sets:4,reps:15},{name:"Pike Push-up",sets:4,reps:10},{name:"Decline Push-up",sets:3,reps:10},{name:"Push-up Hold (Isometric)",sets:3,reps:"15 sec"},{name:"Ab Wheel / Towel Rollout",sets:3,reps:10},{name:"Plank Up-Downs",sets:3,reps:10}],"Day B":[{name:"Pull-ups / Chin-ups",sets:4,reps:"Max"},{name:"Band Pull-Down",sets:4,reps:15},{name:"Dumbbell Row (5kg)",sets:4,reps:"12 each"},{name:"Concentration Curl",sets:3,reps:"12 each"},{name:"Reverse Curl",sets:3,reps:12},{name:"Band Face Pull",sets:4,reps:15}],"Day C":[{name:"Terminal Knee Ext (Heavy)",sets:4,reps:20,acl:true},{name:"Step-Up LEFT only",sets:3,reps:15,acl:true},{name:"Straight Leg Raise (2kg)",sets:4,reps:20,acl:true},{name:"Lateral Band Walk",sets:4,reps:"15 each",acl:true},{name:"Shallow Wall Sit (45°)",sets:4,reps:"30 sec",caution:true},{name:"Single Leg Calf (LEFT)",sets:3,reps:20,acl:true},{name:"Glute Bridge + March",sets:3,reps:"10 each",acl:true}],"Day D":[{name:"Shoulder Press 5kg",sets:4,reps:12},{name:"Lateral Raises 5kg",sets:4,reps:15},{name:"Upright Row (Band)",sets:3,reps:15},{name:"21s Bicep Curl",sets:3,reps:21},{name:"Tricep Kickback",sets:3,reps:15},{name:"Overhead Tricep 5kg",sets:4,reps:12}],"Day E":[{name:"Burpee Modified (No Jump)",sets:4,reps:10,acl:true},{name:"Mountain Climbers (Slow)",sets:3,reps:"20 each",acl:true},{name:"Band Chest Press (Floor)",sets:3,reps:15},{name:"Renegade Row",sets:3,reps:"8 each"},{name:"Push-up + Rotate",sets:3,reps:"8 each"},{name:"Plank Variations Circuit",sets:3,reps:"1 round"}]}}
+};
+
+const MEALS={
+  week1:{label:"Week 1 — Morning Shift (7AM–2PM)",days:[
+    {day:"Monday",meals:[{label:"Breakfast 6AM",name:"Steamed Rice + Soya Chunks Curry",kcal:850,protein:35},{label:"Lunch",name:"Sweet Potato + Boiled Chana Salad",kcal:700,protein:22},{label:"Snack",name:"Banana + Peanuts",kcal:400,protein:12},{label:"Dinner",name:"Chicken Breast + Veggies + Rice",kcal:1050,protein:45}]},
+    {day:"Tuesday",meals:[{label:"Breakfast",name:"Steamed Eggs (4) + Ragi Roti",kcal:700,protein:28},{label:"Lunch",name:"Steamed Soya + Potato Bowl",kcal:800,protein:30},{label:"Snack",name:"Peanut Butter Toast + Banana",kcal:450,protein:14},{label:"Dinner",name:"Chicken Curry Style + Brown Rice",kcal:1050,protein:42}]},
+    {day:"Wednesday",meals:[{label:"Breakfast",name:"Steamed Corn + Soya + 2 Eggs",kcal:650,protein:30},{label:"Lunch",name:"Rice + Rajma Bowl",kcal:850,protein:28},{label:"Snack",name:"Ripe Plantain + Peanuts",kcal:380,protein:10},{label:"Dinner",name:"Chicken + Spinach + Sweet Potato",kcal:1000,protein:40}]},
+    {day:"Thursday",meals:[{label:"Breakfast",name:"Egg Bhurji Style (4 eggs) + Rice",kcal:800,protein:32},{label:"Lunch",name:"Soya + Vegetables Rice Bowl",kcal:850,protein:35},{label:"Snack",name:"Banana 2 + Peanut Butter 2 tbsp",kcal:420,protein:12},{label:"Dinner",name:"Chicken + Green Peas + Capsicum",kcal:950,protein:40}]},
+    {day:"Friday",meals:[{label:"Breakfast",name:"Steamed Chana + Sweet Potato Hash",kcal:750,protein:28},{label:"Lunch",name:"Rice + Rajma + Spinach",kcal:900,protein:32},{label:"Snack",name:"Roasted Peanuts + Plantain",kcal:400,protein:12},{label:"Dinner",name:"Chicken + Brown Rice + Carrot",kcal:950,protein:42}]},
+    {day:"Saturday",meals:[{label:"Breakfast",name:"4 Steamed Eggs + Peanut Butter Toast",kcal:720,protein:32},{label:"Lunch",name:"Soya Biryani Style (Steamed)",kcal:900,protein:36},{label:"Snack",name:"Banana 2 + Mixed Seeds 30g",kcal:380,protein:10},{label:"Dinner",name:"Chicken Lemon Herb + Vegetables",kcal:1000,protein:42}]},
+    {day:"Sunday",meals:[{label:"Breakfast",name:"Steamed Egg Cups (4) + Plantain",kcal:700,protein:28},{label:"Lunch",name:"Rice + Chana + Soya Full Prep",kcal:950,protein:38},{label:"Snack",name:"Peanuts 50g + Banana",kcal:380,protein:13},{label:"Dinner",name:"Chicken + Sweet Potato + Green Peas",kcal:1000,protein:42}]}
+  ]},
+  week2:{label:"Week 2 — Evening Shift",days:[
+    {day:"Monday",meals:[{label:"Breakfast",name:"Peanut Butter Oats + Banana",kcal:700,protein:25},{label:"Lunch",name:"Rice + Dal + Vegetables",kcal:800,protein:28},{label:"Snack",name:"Boiled Eggs 3 + Plantain",kcal:420,protein:22},{label:"Dinner",name:"Chicken + Rice + Salad",kcal:1000,protein:42}]},
+    {day:"Tuesday",meals:[{label:"Breakfast",name:"Soya Chunks + Rice",kcal:750,protein:32},{label:"Lunch",name:"Rajma Rice Bowl",kcal:850,protein:30},{label:"Snack",name:"Banana + Peanuts",kcal:380,protein:12},{label:"Dinner",name:"Chicken Curry + Roti",kcal:1050,protein:44}]},
+    {day:"Wednesday",meals:[{label:"Breakfast",name:"Egg Omelette + Toast",kcal:650,protein:28},{label:"Lunch",name:"Rice + Chana Masala",kcal:800,protein:28},{label:"Snack",name:"Peanut Butter + Apple",kcal:400,protein:12},{label:"Dinner",name:"Grilled Chicken + Sweet Potato",kcal:950,protein:42}]},
+    {day:"Thursday",meals:[{label:"Breakfast",name:"Ragi Porridge + Banana",kcal:600,protein:18},{label:"Lunch",name:"Soya + Potato + Rice",kcal:850,protein:34},{label:"Snack",name:"Boiled Eggs 2 + Peanuts",kcal:380,protein:20},{label:"Dinner",name:"Chicken + Brown Rice + Veggies",kcal:1000,protein:44}]},
+    {day:"Friday",meals:[{label:"Breakfast",name:"Steamed Eggs + Plantain",kcal:650,protein:26},{label:"Lunch",name:"Rice + Rajma + Spinach",kcal:900,protein:32},{label:"Snack",name:"Banana + Seeds Mix",kcal:360,protein:10},{label:"Dinner",name:"Chicken + Sweet Potato + Peas",kcal:980,protein:42}]},
+    {day:"Saturday",meals:[{label:"Breakfast",name:"Soya Chunks Curry + Rice",kcal:780,protein:36},{label:"Lunch",name:"Chana Masala + Roti",kcal:820,protein:30},{label:"Snack",name:"Peanut Butter Toast 2",kcal:420,protein:14},{label:"Dinner",name:"Chicken Tikka Style + Rice",kcal:1020,protein:44}]},
+    {day:"Sunday",meals:[{label:"Breakfast",name:"Eggs Scrambled + Toast",kcal:700,protein:30},{label:"Lunch",name:"Rice + Dal + Soya",kcal:900,protein:36},{label:"Snack",name:"Banana 2 + Peanuts",kcal:380,protein:13},{label:"Dinner",name:"Chicken + Brown Rice + Salad",kcal:1000,protein:42}]}
+  ]}
+};
+
+const HABITS=[
+  {id:"no_smoking",icon:"🚭",label:"No Smoking"},
+  {id:"water",icon:"💧",label:"Drink Water (3–4L)"},
+  {id:"no_alcohol",icon:"🍺",label:"No Alcohol"},
+  {id:"meditation",icon:"🧘",label:"Meditation"},
+  {id:"no_junk",icon:"🍟",label:"No Junk Food"},
+  {id:"exercise",icon:"👟",label:"Exercise Done"},
+  {id:"supplements",icon:"💊",label:"Supplements"},
+  {id:"sleep",icon:"😴",label:"Sleep 7–8 hrs"},
+];
+
+const GOLDEN_RULES=[
+  "Trade only during London Open (12:30–14:30 IST) or NY Open (18:30–20:30 IST).",
+  "Risk max 1–2% of capital per trade. No exceptions.",
+  "Never move SL to breakeven before 1:1 reward.",
+  "Wait for CHoCH / BOS confirmation before entry.",
+  "Mark Premium & Discount zones first.",
+  "Only enter from OB or FVG inside discount/premium zone.",
+  "No revenge trades. 2 consecutive losses → stop session.",
+  "Screenshot entry AND exit for every trade.",
+  "Log trade within 30 minutes of close.",
+  "Weekly review every Sunday.",
+];
+
+function todayKey(){return new Date().toISOString().split("T")[0];}
+
+function useStorage(key,init){
+  const full=`dtapp_${key}`;
+  const[val,setVal]=useState(()=>{try{const v=localStorage.getItem(full);return v!=null?JSON.parse(v):init;}catch{return init;}});
+  const save=(v)=>{setVal(v);try{localStorage.setItem(full,JSON.stringify(v));}catch{}};
+  return[val,save];
+}
+
+function getDatesInRange(start,end){
+  const dates=[];let d=new Date(start);const e=new Date(end);
+  while(d<=e){dates.push(d.toISOString().split("T")[0]);d.setDate(d.getDate()+1);}
+  return dates;
+}
+function getWeekDates(offset=0){
+  const now=new Date();now.setDate(now.getDate()+offset*7);
+  const day=now.getDay();const mon=new Date(now);mon.setDate(now.getDate()-((day+6)%7));
+  const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+  return getDatesInRange(mon.toISOString().split("T")[0],sun.toISOString().split("T")[0]);
+}
+function getMonthDates(year,month){
+  const start=new Date(year,month,1),end=new Date(year,month+1,0);
+  return getDatesInRange(start.toISOString().split("T")[0],end.toISOString().split("T")[0]);
+}
+function getYearDates(year){return getDatesInRange(`${year}-01-01`,`${year}-12-31`);}
+
+function ProgressRing({pct,size=56,stroke=5,color="#00e5ff"}){
+  const r=(size-stroke)/2,circ=2*Math.PI*r,off=circ-(pct/100)*circ;
+  return(
+    <svg width={size} height={size}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#1e293b" strokeWidth={stroke}/>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+        strokeDasharray={circ} strokeDashoffset={off} strokeLinecap="round"
+        style={{transform:"rotate(-90deg)",transformOrigin:"50% 50%",transition:"stroke-dashoffset .4s"}}/>
+      <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" fill={color}
+        style={{fontSize:size*0.22,fontFamily:"monospace",fontWeight:700}}>{Math.round(pct)}%</text>
+    </svg>
+  );
+}
+
+function Badge({label,color}){
+  return <span style={{background:color+"22",color,border:`1px solid ${color}55`,borderRadius:4,padding:"2px 7px",fontSize:10,fontWeight:700,letterSpacing:1}}>{label}</span>;
+}
+
+function MiniBar({value,max,color,label,sub}){
+  const pct=max>0?Math.min(100,(value/max)*100):0;
+  return(
+    <div style={{marginBottom:10}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+        <span style={{color:"#94a3b8",fontSize:11}}>{label}</span>
+        <span style={{color,fontSize:11,fontWeight:700}}>{sub}</span>
+      </div>
+      <div style={{height:5,background:"#1e293b",borderRadius:3}}>
+        <div style={{height:5,width:`${pct}%`,background:color,borderRadius:3,transition:"width .4s"}}/>
+      </div>
+    </div>
+  );
+}
+
+function Overview({habits,habitLog,workoutLog,mealLog,trades,budget}){
+  const dk=todayKey();
+  const doneHabits=HABITS.filter(h=>habitLog[dk]?.[h.id]).length;
+  const habitPct=Math.round((doneHabits/HABITS.length)*100);
+  const todayTrades=trades.filter(t=>t.date===dk);
+  const wins=todayTrades.filter(t=>t.result==="WIN").length;
+  const spent=budget.expenses?.filter(e=>e.date===dk).reduce((s,e)=>s+Number(e.amount),0)||0;
+  const dailyBudget=budget.daily||5000;
+  const remaining=dailyBudget-spent;
+  const workoutDone=workoutLog[dk]?.done;
+  const now=new Date();
+  const days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  return(
+    <div style={{padding:"0 0 80px"}}>
+      <div style={{background:"linear-gradient(135deg,#0f172a 0%,#1e293b 100%)",border:"1px solid #334155",borderRadius:16,padding:20,marginBottom:16}}>
+        <div style={{color:"#64748b",fontSize:11,letterSpacing:2,marginBottom:4}}>{days[now.getDay()].toUpperCase()}, {now.toLocaleDateString("en-IN",{day:"numeric",month:"short"}).toUpperCase()}</div>
+        <div style={{fontSize:28,fontWeight:900,color:"#f1f5f9",fontFamily:"Georgia,serif",marginBottom:16}}>Overview</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          {[
+            {label:"TODAY'S DISCIPLINE",value:`${doneHabits}/8 habits`,pct:habitPct,color:"#a855f7"},
+            {label:"WORKOUT",value:workoutDone?"✓ Completed":"Not logged",pct:workoutDone?100:0,color:"#00e5ff"},
+            {label:"DAILY BUDGET",value:`₹${remaining.toLocaleString()} left`,pct:Math.max(0,(remaining/dailyBudget)*100),color:"#10b981"},
+            {label:"TRADES TODAY",value:`${todayTrades.length} trades · ${wins}W`,pct:todayTrades.length?(wins/todayTrades.length)*100:0,color:"#f59e0b"},
+          ].map(card=>(
+            <div key={card.label} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:12,padding:14,display:"flex",flexDirection:"column",gap:8}}>
+              <div style={{color:"#64748b",fontSize:9,letterSpacing:1.5,fontWeight:700}}>{card.label}</div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{color:"#f1f5f9",fontSize:13,fontWeight:700}}>{card.value}</div>
+                <ProgressRing pct={card.pct} size={44} stroke={4} color={card.color}/>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:16,padding:16,marginBottom:16}}>
+        <div style={{color:"#64748b",fontSize:10,letterSpacing:2,marginBottom:12}}>HABITS TODAY</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+          {HABITS.map(h=>{
+            const done=habitLog[dk]?.[h.id];
+            return(
+              <div key={h.id} style={{textAlign:"center",padding:"10px 4px",background:done?"#a855f722":"#1e293b",border:`1px solid ${done?"#a855f7":"#334155"}`,borderRadius:10,cursor:"pointer",transition:"all .2s"}} onClick={()=>habits(h.id)}>
+                <div style={{fontSize:20,marginBottom:4}}>{h.icon}</div>
+                <div style={{fontSize:9,color:done?"#a855f7":"#64748b",fontWeight:600}}>{done?"✓":"—"}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:16,padding:16}}>
+        <div style={{color:"#64748b",fontSize:10,letterSpacing:2,marginBottom:4}}>ACL REMINDER</div>
+        <div style={{color:"#ef4444",fontSize:12,lineHeight:1.6}}>⚠️ Never deep squat, lunge, or jump on right leg. Stop immediately if pain or swelling. Ice knee 15–20 min after exercise.</div>
+      </div>
+    </div>
+  );
+}
+
+function Workout({workoutLog,setWorkoutLog}){
+  const dk=todayKey();
+  const[phase,setPhase]=useStorage("workout_phase",1);
+  const[selDay,setSelDay]=useStorage("workout_day","Day A");
+  const phaseData=WORKOUT_PLAN[`phase${phase}`];
+  const safeDay=phaseData.schedules[selDay]?selDay:"Day A";
+  const exercises=phaseData.schedules[safeDay]||[];
+  const log=workoutLog[dk]||{};
+  const checked=log.exercises||{};
+  const toggle=(name)=>{
+    const upd={...workoutLog,[dk]:{...log,exercises:{...checked,[name]:!checked[name]}}};
+    const done=exercises.every(e=>upd[dk].exercises[e.name]);
+    upd[dk].done=done;
+    setWorkoutLog(upd);
+  };
+  const doneCount=exercises.filter(e=>checked[e.name]).length;
+  const pct=exercises.length?Math.round((doneCount/exercises.length)*100):0;
+  return(
+    <div style={{padding:"0 0 80px"}}>
+      <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:16,padding:16,marginBottom:12}}>
+        <div style={{color:"#64748b",fontSize:10,letterSpacing:2,marginBottom:10}}>SELECT PHASE</div>
+        <div style={{display:"flex",gap:8}}>
+          {[1,2,3].map(p=>(
+            <button key={p} onClick={()=>{setPhase(p);setSelDay("Day A");}}
+              style={{flex:1,padding:"10px 4px",borderRadius:10,border:`1px solid ${phase===p?PHASE_COLORS[p]:"#334155"}`,cursor:"pointer",background:phase===p?PHASE_COLORS[p]+"22":"#1e293b",color:phase===p?PHASE_COLORS[p]:"#64748b",fontSize:11,fontWeight:700}}>
+              Phase {p}
+            </button>
+          ))}
+        </div>
+        <div style={{marginTop:8,color:PHASE_COLORS[phase],fontSize:12,fontWeight:600}}>{phaseData.label} · {phaseData.months} · {phaseData.days} days/week</div>
+      </div>
+      <div style={{display:"flex",gap:6,marginBottom:12,overflowX:"auto",paddingBottom:4}}>
+        {Object.keys(phaseData.schedules).map(d=>(
+          <button key={d} onClick={()=>setSelDay(d)} style={{flexShrink:0,padding:"8px 14px",borderRadius:20,border:"none",cursor:"pointer",background:safeDay===d?"#00e5ff":"#1e293b",color:safeDay===d?"#000":"#64748b",fontSize:11,fontWeight:700}}>{d}</button>
+        ))}
+      </div>
+      <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:16,padding:16,marginBottom:12,display:"flex",alignItems:"center",gap:16}}>
+        <ProgressRing pct={pct} size={64} stroke={6} color="#00e5ff"/>
+        <div>
+          <div style={{color:"#f1f5f9",fontSize:18,fontWeight:800}}>{doneCount}/{exercises.length} exercises</div>
+          <div style={{color:"#64748b",fontSize:12}}>{safeDay}</div>
+        </div>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {exercises.map(ex=>{
+          const done=!!checked[ex.name];
+          return(
+            <div key={ex.name} onClick={()=>toggle(ex.name)} style={{background:done?"#00e5ff11":"#0f172a",border:`1px solid ${done?"#00e5ff":"#334155"}`,borderRadius:12,padding:"12px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:12,transition:"all .2s"}}>
+              <div style={{width:22,height:22,borderRadius:"50%",border:`2px solid ${done?"#00e5ff":"#475569"}`,background:done?"#00e5ff":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"#000",fontSize:12,fontWeight:900}}>{done?"✓":""}</div>
+              <div style={{flex:1}}>
+                <div style={{color:done?"#00e5ff":"#f1f5f9",fontSize:13,fontWeight:600,textDecoration:done?"line-through":"none",textDecorationColor:"#00e5ff55"}}>{ex.name}</div>
+                <div style={{color:"#64748b",fontSize:11,marginTop:2}}>{ex.sets} sets × {ex.reps} reps{ex.acl&&<span style={{color:"#10b981",marginLeft:6}}>• ACL-SAFE</span>}{ex.caution&&<span style={{color:"#f59e0b",marginLeft:6}}>• CAUTION</span>}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function Meals({mealLog,setMealLog}){
+  const dk=todayKey();
+  const dayOfWeek=new Date().getDay();
+  const dayNames=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const[selDay,setSelDay]=useState(dayNames[dayOfWeek]);
+  const[shift,setShift]=useStorage("meal_shift","week1");
+  const weekData=MEALS[shift]||MEALS.week1;
+  const dayData=weekData.days.find(d=>d.day===selDay)||weekData.days[0];
+  const log=mealLog[dk]||{};
+  const eaten=log.meals||{};
+  const toggle=(mealLabel)=>{
+    const upd={...mealLog,[dk]:{...log,meals:{...eaten,[mealLabel]:!eaten[mealLabel]}}};
+    setMealLog(upd);
+  };
+  const totalKcal=dayData.meals.reduce((s,m)=>s+m.kcal,0);
+  const totalProtein=dayData.meals.reduce((s,m)=>s+m.protein,0);
+  const eatenKcal=dayData.meals.filter(m=>eaten[m.label]).reduce((s,m)=>s+m.kcal,0);
+  const eatenProtein=dayData.meals.filter(m=>eaten[m.label]).reduce((s,m)=>s+m.protein,0);
+  const mealColors={Breakfast:"#f59e0b",Lunch:"#10b981",Snack:"#a855f7",Dinner:"#00e5ff"};
+  return(
+    <div style={{padding:"0 0 80px"}}>
+      <div style={{display:"flex",gap:8,marginBottom:12}}>
+        {["week1","week2"].map(w=>(
+          <button key={w} onClick={()=>setShift(w)} style={{flex:1,padding:10,borderRadius:10,border:"none",cursor:"pointer",background:shift===w?"#10b981":"#1e293b",color:shift===w?"#000":"#64748b",fontSize:12,fontWeight:700}}>
+            {w==="week1"?"Morning Shift":"Evening Shift"}
+          </button>
+        ))}
+      </div>
+      <div style={{display:"flex",gap:6,marginBottom:12,overflowX:"auto",paddingBottom:4}}>
+        {["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].map(d=>(
+          <button key={d} onClick={()=>setSelDay(d)} style={{flexShrink:0,padding:"6px 12px",borderRadius:20,border:"none",cursor:"pointer",background:selDay===d?"#10b981":"#1e293b",color:selDay===d?"#000":"#64748b",fontSize:11,fontWeight:700}}>{d.slice(0,3)}</button>
+        ))}
+      </div>
+      <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:16,padding:16,marginBottom:12}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div>
+            <div style={{color:"#64748b",fontSize:10,letterSpacing:1.5,marginBottom:4}}>CALORIES</div>
+            <div style={{color:"#f59e0b",fontSize:22,fontWeight:900}}>{eatenKcal}</div>
+            <div style={{color:"#64748b",fontSize:11}}>of {totalKcal} kcal</div>
+            <div style={{height:4,background:"#1e293b",borderRadius:2,marginTop:6}}>
+              <div style={{height:4,background:"#f59e0b",borderRadius:2,width:`${totalKcal?(eatenKcal/totalKcal)*100:0}%`,transition:"width .3s"}}/>
+            </div>
+          </div>
+          <div>
+            <div style={{color:"#64748b",fontSize:10,letterSpacing:1.5,marginBottom:4}}>PROTEIN</div>
+            <div style={{color:"#10b981",fontSize:22,fontWeight:900}}>{eatenProtein}g</div>
+            <div style={{color:"#64748b",fontSize:11}}>of {totalProtein}g target</div>
+            <div style={{height:4,background:"#1e293b",borderRadius:2,marginTop:6}}>
+              <div style={{height:4,background:"#10b981",borderRadius:2,width:`${totalProtein?(eatenProtein/totalProtein)*100:0}%`,transition:"width .3s"}}/>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {dayData.meals.map(meal=>{
+          const color=Object.entries(mealColors).find(([k])=>meal.label.includes(k))?.[1]||"#00e5ff";
+          const done=eaten[meal.label];
+          return(
+            <div key={meal.label} onClick={()=>toggle(meal.label)} style={{background:done?color+"11":"#0f172a",border:`1px solid ${done?color:"#334155"}`,borderRadius:14,padding:14,cursor:"pointer",transition:"all .2s"}}>
+              <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
+                <div style={{flex:1}}>
+                  <div style={{color,fontSize:10,fontWeight:700,letterSpacing:1.5,marginBottom:4}}>{meal.label.toUpperCase()}</div>
+                  <div style={{color:done?color:"#f1f5f9",fontSize:13,fontWeight:600,marginBottom:6}}>{meal.name}</div>
+                  <div style={{display:"flex",gap:10}}>
+                    <span style={{color:"#f59e0b",fontSize:11}}>🔥 {meal.kcal} kcal</span>
+                    <span style={{color:"#10b981",fontSize:11}}>💪 {meal.protein}g protein</span>
+                  </div>
+                </div>
+                <div style={{width:28,height:28,borderRadius:"50%",border:`2px solid ${done?color:"#475569"}`,background:done?color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",color:"#000",fontSize:14,fontWeight:900,flexShrink:0,marginLeft:12}}>{done?"✓":""}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function Trading({trades,setTrades}){
+  const dk=todayKey();
+  const[form,setForm]=useState({date:dk,session:"London",direction:"LONG",tf:"15m",entry:"",sl:"",tp:"",lot:"",riskAmt:"",riskPct:"",rrPlan:"",result:"WIN",reasoning:"",mistakes:"",score:5});
+  const[adding,setAdding]=useState(false);
+  const save=()=>{
+    if(!form.entry)return;
+    setTrades([...trades,{...form,id:Date.now()}]);
+    setAdding(false);
+    setForm({...form,entry:"",sl:"",tp:"",lot:"",reasoning:"",mistakes:""});
+  };
+  const todayTrades=trades.filter(t=>t.date===dk);
+  const wins=todayTrades.filter(t=>t.result==="WIN").length;
+  const winRate=todayTrades.length?Math.round((wins/todayTrades.length)*100):0;
+  const inp={background:"#1e293b",border:"1px solid #334155",borderRadius:8,color:"#f1f5f9",padding:"8px 10px",fontSize:13,outline:"none",width:"100%",boxSizing:"border-box"};
+  return(
+    <div style={{padding:"0 0 80px"}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
+        {[{l:"TRADES",v:todayTrades.length,c:"#00e5ff"},{l:"WIN RATE",v:winRate+"%",c:"#10b981"},{l:"SESSION",v:"London/NY",c:"#f59e0b"}].map(s=>(
+          <div key={s.l} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:12,padding:12,textAlign:"center"}}>
+            <div style={{color:"#64748b",fontSize:9,letterSpacing:1.5}}>{s.l}</div>
+            <div style={{color:s.c,fontSize:18,fontWeight:900}}>{s.v}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{background:"#0f172a",border:"1px solid #f59e0b44",borderRadius:14,padding:14,marginBottom:12}}>
+        <div style={{color:"#f59e0b",fontSize:10,letterSpacing:2,marginBottom:8}}>⚡ GOLDEN RULES</div>
+        {GOLDEN_RULES.slice(0,5).map((r,i)=>(
+          <div key={i} style={{color:"#94a3b8",fontSize:11,padding:"3px 0",borderBottom:"1px solid #1e293b"}}>
+            <span style={{color:"#f59e0b",fontWeight:700}}>{i+1}.</span> {r}
+          </div>
+        ))}
+      </div>
+      {!adding?(
+        <button onClick={()=>setAdding(true)} style={{width:"100%",padding:14,background:"linear-gradient(135deg,#f59e0b,#ef4444)",border:"none",borderRadius:12,color:"#000",fontWeight:800,fontSize:14,cursor:"pointer",marginBottom:12}}>+ LOG NEW TRADE</button>
+      ):(
+        <div style={{background:"#0f172a",border:"1px solid #f59e0b55",borderRadius:16,padding:16,marginBottom:12}}>
+          <div style={{color:"#f59e0b",fontSize:12,fontWeight:700,marginBottom:12}}>NEW TRADE ENTRY</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+            {[{label:"Session",field:"session",opts:["London","New York","Asia"]},{label:"Direction",field:"direction",opts:["LONG","SHORT"]},{label:"Timeframe",field:"tf",opts:["15m","1H","4H"]},{label:"Result",field:"result",opts:["WIN","LOSS","BE"]}].map(f=>(
+              <div key={f.field}>
+                <div style={{color:"#64748b",fontSize:10,marginBottom:4}}>{f.label}</div>
+                <select value={form[f.field]} onChange={e=>setForm({...form,[f.field]:e.target.value})} style={inp}>{f.opts.map(o=><option key={o}>{o}</option>)}</select>
+              </div>
+            ))}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:8}}>
+            {[{label:"Entry",field:"entry"},{label:"Stop Loss",field:"sl"},{label:"Take Profit",field:"tp"},{label:"Lot Size",field:"lot"},{label:"Risk Amt ₹",field:"riskAmt"},{label:"Risk %",field:"riskPct"}].map(f=>(
+              <div key={f.field}>
+                <div style={{color:"#64748b",fontSize:10,marginBottom:4}}>{f.label}</div>
+                <input value={form[f.field]} onChange={e=>setForm({...form,[f.field]:e.target.value})} type="number" style={inp} placeholder="0"/>
+              </div>
+            ))}
+          </div>
+          <div style={{marginBottom:8}}>
+            <div style={{color:"#64748b",fontSize:10,marginBottom:4}}>RR Planned (1:?)</div>
+            <input value={form.rrPlan} onChange={e=>setForm({...form,rrPlan:e.target.value})} type="number" style={inp} placeholder="2"/>
+          </div>
+          <div style={{marginBottom:8}}>
+            <div style={{color:"#64748b",fontSize:10,marginBottom:4}}>Trade Reasoning</div>
+            <textarea value={form.reasoning} onChange={e=>setForm({...form,reasoning:e.target.value})} rows={2} style={{...inp,resize:"vertical"}} placeholder="CHoCH on 1H, OB at discount zone..."/>
+          </div>
+          <div style={{marginBottom:12}}>
+            <div style={{color:"#64748b",fontSize:10,marginBottom:4}}>Mistakes / Notes</div>
+            <textarea value={form.mistakes} onChange={e=>setForm({...form,mistakes:e.target.value})} rows={2} style={{...inp,resize:"vertical"}} placeholder="Entered too early..."/>
+          </div>
+          <div style={{marginBottom:12}}>
+            <div style={{color:"#64748b",fontSize:10,marginBottom:6}}>DISCIPLINE SCORE: {form.score}/5</div>
+            <div style={{display:"flex",gap:8}}>
+              {[1,2,3,4,5].map(s=>(
+                <button key={s} onClick={()=>setForm({...form,score:s})} style={{flex:1,padding:8,borderRadius:8,border:"none",cursor:"pointer",background:form.score>=s?"#f59e0b":"#1e293b",color:form.score>=s?"#000":"#64748b",fontWeight:700}}>{s}</button>
+              ))}
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={save} style={{flex:1,padding:12,background:"#10b981",border:"none",borderRadius:10,color:"#000",fontWeight:800,cursor:"pointer",fontSize:13}}>✓ SAVE TRADE</button>
+            <button onClick={()=>setAdding(false)} style={{padding:"12px 16px",background:"#1e293b",border:"none",borderRadius:10,color:"#64748b",cursor:"pointer",fontSize:13}}>Cancel</button>
+          </div>
+        </div>
+      )}
+      {trades.slice(-10).reverse().map(t=>{
+        const color=t.result==="WIN"?"#10b981":t.result==="LOSS"?"#ef4444":"#f59e0b";
+        return(
+          <div key={t.id} style={{background:"#0f172a",border:`1px solid ${color}44`,borderRadius:12,padding:12,marginBottom:8}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{color:"#f1f5f9",fontSize:12,fontWeight:700}}>{t.direction} · {t.tf} · {t.session}</div>
+                <div style={{color:"#64748b",fontSize:10}}>{t.date} · Score: {t.score}/5</div>
+              </div>
+              <Badge label={t.result} color={color}/>
+            </div>
+            {t.reasoning&&<div style={{color:"#94a3b8",fontSize:11,marginTop:6}}>{t.reasoning}</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function HabitsTab({habitLog,setHabitLog}){
+  const dk=todayKey();
+  const log=habitLog[dk]||{};
+  const toggle=(id)=>{const upd={...habitLog,[dk]:{...log,[id]:!log[id]}};setHabitLog(upd);};
+  const streak=(id)=>{
+    let s=0,d=new Date();
+    while(true){const k=d.toISOString().split("T")[0];if(habitLog[k]?.[id]){s++;d.setDate(d.getDate()-1);}else break;}
+    return s;
+  };
+  const last7=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));return d.toISOString().split("T")[0];});
+  return(
+    <div style={{padding:"0 0 80px"}}>
+      <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:16,padding:16,marginBottom:12}}>
+        <div style={{color:"#64748b",fontSize:10,letterSpacing:2,marginBottom:4}}>LAST 7 DAYS</div>
+        <div style={{display:"flex",gap:4}}>
+          {last7.map(d=>{
+            const doneCount=HABITS.filter(h=>habitLog[d]?.[h.id]).length;
+            const pct=(doneCount/HABITS.length)*100;
+            return(
+              <div key={d} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                <div style={{height:40,width:"100%",background:"#1e293b",borderRadius:4,position:"relative",overflow:"hidden"}}>
+                  <div style={{position:"absolute",bottom:0,width:"100%",height:`${pct}%`,background:pct===100?"#a855f7":pct>60?"#10b981":"#334155",transition:"height .3s"}}/>
+                </div>
+                <div style={{color:"#64748b",fontSize:8}}>{new Date(d).toLocaleDateString("en",{weekday:"short"}).slice(0,1)}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {HABITS.map(h=>{
+          const done=!!log[h.id];
+          const str=streak(h.id);
+          return(
+            <div key={h.id} onClick={()=>toggle(h.id)} style={{background:done?"#a855f711":"#0f172a",border:`1px solid ${done?"#a855f7":"#334155"}`,borderRadius:14,padding:"14px 16px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:14}}>
+              <div style={{fontSize:28}}>{h.icon}</div>
+              <div style={{flex:1}}>
+                <div style={{color:done?"#a855f7":"#f1f5f9",fontSize:14,fontWeight:700}}>{h.label}</div>
+                <div style={{color:"#64748b",fontSize:11,marginTop:2}}>{str>0?`🔥 ${str} day streak`:"Start your streak today"}</div>
+              </div>
+              <div style={{width:32,height:32,borderRadius:"50%",border:`2px solid ${done?"#a855f7":"#475569"}`,background:done?"#a855f7":"transparent",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:16,fontWeight:900}}>{done?"✓":""}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function Budget({budget,setBudget}){
+  const dk=todayKey();
+  const[desc,setDesc]=useState("");
+  const[amount,setAmount]=useState("");
+  const[cat,setCat]=useState("Food");
+  const dailyLimit=budget.daily||5000;
+  const expenses=budget.expenses||[];
+  const todayExp=expenses.filter(e=>e.date===dk);
+  const spent=todayExp.reduce((s,e)=>s+Number(e.amount),0);
+  const remaining=dailyLimit-spent;
+  const cats=["Food","Transport","Health","Workout","Trading","Other"];
+  const catColors={Food:"#f59e0b",Transport:"#00e5ff",Health:"#10b981",Workout:"#a855f7",Trading:"#ef4444",Other:"#64748b"};
+  const add=()=>{if(!desc||!amount)return;setBudget({...budget,expenses:[...expenses,{id:Date.now(),date:dk,desc,amount:Number(amount),cat}]});setDesc("");setAmount("");};
+  const del=(id)=>setBudget({...budget,expenses:expenses.filter(e=>e.id!==id)});
+  const last7=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));const k=d.toISOString().split("T")[0];return{k,day:d.toLocaleDateString("en",{weekday:"short"}).slice(0,3),spent:expenses.filter(e=>e.date===k).reduce((s,e)=>s+Number(e.amount),0)};});
+  return(
+    <div style={{padding:"0 0 80px"}}>
+      <div style={{background:"linear-gradient(135deg,#0d2b2b,#0f3a1a)",border:"1px solid #10b98144",borderRadius:16,padding:20,marginBottom:12}}>
+        <div style={{color:"#10b981",fontSize:10,letterSpacing:2}}>DAILY BUDGET</div>
+        <div style={{color:"#f1f5f9",fontSize:36,fontWeight:900,fontFamily:"Georgia,serif"}}>₹{remaining.toLocaleString()}</div>
+        <div style={{color:"#64748b",fontSize:12,marginBottom:10}}>remaining · Spent ₹{spent.toLocaleString()}</div>
+        <div style={{height:6,background:"#1e293b",borderRadius:3}}>
+          <div style={{height:6,borderRadius:3,width:`${Math.min(100,(spent/dailyLimit)*100)}%`,background:remaining<500?"#ef4444":remaining<1500?"#f59e0b":"#10b981",transition:"width .3s"}}/>
+        </div>
+        <div style={{marginTop:10,display:"flex",alignItems:"center",gap:8}}>
+          <input type="number" value={dailyLimit} onChange={e=>setBudget({...budget,daily:Number(e.target.value)})}
+            style={{background:"#0f172a",border:"1px solid #334155",borderRadius:8,color:"#10b981",padding:"6px 10px",fontSize:13,width:100,outline:"none"}}/>
+          <span style={{color:"#64748b",fontSize:11}}>daily limit</span>
+        </div>
+      </div>
+      <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:16,padding:16,marginBottom:12}}>
+        <div style={{color:"#64748b",fontSize:10,letterSpacing:2,marginBottom:10}}>7-DAY SPENDING</div>
+        <div style={{display:"flex",gap:6,alignItems:"flex-end",height:60}}>
+          {last7.map(d=>{const pct=Math.min(100,(d.spent/dailyLimit)*100);return(
+            <div key={d.k} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+              <div style={{width:"100%",height:50,position:"relative",background:"#1e293b",borderRadius:4}}>
+                <div style={{position:"absolute",bottom:0,width:"100%",height:`${pct}%`,background:pct>90?"#ef4444":"#10b981",borderRadius:4,transition:"height .3s"}}/>
+              </div>
+              <div style={{color:"#64748b",fontSize:9}}>{d.day}</div>
+            </div>
+          );})}
+        </div>
+      </div>
+      <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:16,padding:16,marginBottom:12}}>
+        <div style={{color:"#64748b",fontSize:10,letterSpacing:2,marginBottom:10}}>ADD EXPENSE</div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
+          {cats.map(c=>(
+            <button key={c} onClick={()=>setCat(c)} style={{padding:"5px 10px",borderRadius:20,border:"none",cursor:"pointer",fontSize:11,fontWeight:700,background:cat===c?catColors[c]:"#1e293b",color:cat===c?"#000":"#64748b"}}>{c}</button>
+          ))}
+        </div>
+        <div style={{display:"flex",gap:8,marginBottom:8}}>
+          <input value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Description" style={{flex:2,background:"#1e293b",border:"1px solid #334155",borderRadius:8,color:"#f1f5f9",padding:"8px 10px",fontSize:13,outline:"none"}}/>
+          <input value={amount} onChange={e=>setAmount(e.target.value)} placeholder="₹ Amount" type="number" style={{flex:1,background:"#1e293b",border:"1px solid #334155",borderRadius:8,color:"#f1f5f9",padding:"8px 10px",fontSize:13,outline:"none"}}/>
+        </div>
+        <button onClick={add} style={{width:"100%",padding:"10px",background:"#10b981",border:"none",borderRadius:8,color:"#000",fontWeight:800,cursor:"pointer",fontSize:14}}>+ ADD EXPENSE</button>
+      </div>
+      {todayExp.length>0&&(
+        <div>
+          <div style={{color:"#64748b",fontSize:10,letterSpacing:2,marginBottom:8}}>TODAY'S EXPENSES</div>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {todayExp.map(e=>(
+              <div key={e.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center"}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:catColors[e.cat]||"#64748b",marginRight:10}}/>
+                <div style={{flex:1}}>
+                  <div style={{color:"#f1f5f9",fontSize:13}}>{e.desc}</div>
+                  <div style={{color:"#64748b",fontSize:10}}>{e.cat}</div>
+                </div>
+                <div style={{color:"#ef4444",fontSize:14,fontWeight:700,marginRight:10}}>₹{e.amount}</div>
+                <button onClick={()=>del(e.id)} style={{background:"none",border:"none",color:"#475569",cursor:"pointer",fontSize:16}}>×</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Analytics({habitLog,workoutLog,mealLog,trades,budget}){
+  const[period,setPeriod]=useState("week");
+  const[weekOffset,setWeekOffset]=useState(0);
+  const[selMonth,setSelMonth]=useState(new Date().getMonth());
+  const[selYear,setSelYear]=useState(new Date().getFullYear());
+  const[section,setSection]=useState("habits");
+  const now=new Date();
+  const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  let dates=[],periodLabel="";
+  if(period==="week"){dates=getWeekDates(weekOffset);const d0=new Date(dates[0]),d1=new Date(dates[dates.length-1]);periodLabel=`${d0.toLocaleDateString("en-IN",{day:"numeric",month:"short"})} – ${d1.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}`;}
+  else if(period==="month"){dates=getMonthDates(selYear,selMonth);periodLabel=`${MONTHS[selMonth]} ${selYear}`;}
+  else{dates=getYearDates(selYear);periodLabel=`Year ${selYear}`;}
+  const habitData=HABITS.map(h=>{const done=dates.filter(d=>habitLog[d]?.[h.id]).length;return{...h,done,total:dates.length,pct:Math.round((done/dates.length)*100)};});
+  const avgHabitPct=Math.round(habitData.reduce((s,h)=>s+h.pct,0)/HABITS.length);
+  const perfectDays=dates.filter(d=>HABITS.every(h=>habitLog[d]?.[h.id])).length;
+  const workoutDays=dates.filter(d=>workoutLog[d]?.done).length;
+  const workoutPct=Math.round((workoutDays/dates.length)*100);
+  const mealDays=dates.filter(d=>{const eaten=mealLog[d]?.meals||{};return Object.values(eaten).some(Boolean);}).length;
+  const fullMealDays=dates.filter(d=>{const eaten=mealLog[d]?.meals||{};return Object.values(eaten).filter(Boolean).length>=3;}).length;
+  const periodTrades=trades.filter(t=>dates.includes(t.date));
+  const wins=periodTrades.filter(t=>t.result==="WIN").length;
+  const losses=periodTrades.filter(t=>t.result==="LOSS").length;
+  const be=periodTrades.filter(t=>t.result==="BE").length;
+  const winRate=periodTrades.length?Math.round((wins/periodTrades.length)*100):0;
+  const avgScore=periodTrades.length?(periodTrades.reduce((s,t)=>s+Number(t.score||0),0)/periodTrades.length).toFixed(1):"—";
+  const londonTrades=periodTrades.filter(t=>t.session==="London").length;
+  const nyTrades=periodTrades.filter(t=>t.session==="New York").length;
+  const expenses=budget.expenses||[];
+  const periodExpenses=expenses.filter(e=>dates.includes(e.date));
+  const totalSpent=periodExpenses.reduce((s,e)=>s+Number(e.amount),0);
+  const dailyLimit=budget.daily||5000;
+  const budgetDays=[...new Set(periodExpenses.map(e=>e.date))].length;
+  const avgDailySpend=budgetDays>0?Math.round(totalSpent/budgetDays):0;
+  const overBudgetDays=dates.filter(d=>{const daySpend=expenses.filter(e=>e.date===d).reduce((s,e)=>s+Number(e.amount),0);return daySpend>dailyLimit;}).length;
+  const catTotals={};periodExpenses.forEach(e=>{catTotals[e.cat]=(catTotals[e.cat]||0)+Number(e.amount);});
+  const catColors={Food:"#f59e0b",Transport:"#00e5ff",Health:"#10b981",Workout:"#a855f7",Trading:"#ef4444",Other:"#64748b"};
+  let chartBuckets=[];
+  if(period==="week"){chartBuckets=dates.map(d=>({label:new Date(d).toLocaleDateString("en",{weekday:"short"}).slice(0,2),habitPct:Math.round((HABITS.filter(h=>habitLog[d]?.[h.id]).length/HABITS.length)*100),workout:workoutLog[d]?.done?1:0,spent:expenses.filter(e=>e.date===d).reduce((s,e)=>s+Number(e.amount),0),trades:trades.filter(t=>t.date===d).length}));}
+  else if(period==="month"){const weeks={};dates.forEach(d=>{const wd=new Date(d);const wn=Math.ceil(wd.getDate()/7);const key=`W${wn}`;if(!weeks[key])weeks[key]={label:key,dates:[]};weeks[key].dates.push(d);});chartBuckets=Object.values(weeks).map(w=>({label:w.label,habitPct:Math.round(w.dates.reduce((s,d)=>s+(HABITS.filter(h=>habitLog[d]?.[h.id]).length/HABITS.length)*100,0)/w.dates.length),workout:w.dates.filter(d=>workoutLog[d]?.done).length,spent:expenses.filter(e=>w.dates.includes(e.date)).reduce((s,e)=>s+Number(e.amount),0),trades:trades.filter(t=>w.dates.includes(t.date)).length}));}
+  else{chartBuckets=MONTHS.map((m,i)=>{const mDates=getMonthDates(selYear,i);return{label:m.slice(0,3),habitPct:mDates.length?Math.round(mDates.reduce((s,d)=>s+(HABITS.filter(h=>habitLog[d]?.[h.id]).length/HABITS.length)*100,0)/mDates.length):0,workout:mDates.filter(d=>workoutLog[d]?.done).length,spent:expenses.filter(e=>mDates.includes(e.date)).reduce((s,e)=>s+Number(e.amount),0),trades:trades.filter(t=>mDates.includes(t.date)).length};});}
+  const sections=["habits","workout","meals","trading","budget"];
+  const secIcons={habits:"🔥",workout:"💪",meals:"🍱",trading:"₿",budget:"₹"};
+  const s={background:"#0f172a",border:"1px solid #334155",borderRadius:14,padding:14,marginBottom:12};
+  const heatDates=Array.from({length:90},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(89-i));return d.toISOString().split("T")[0];});
+  const nav=(dir)=>{if(period==="week")setWeekOffset(w=>w+dir);else if(period==="month"){setSelMonth(m=>{if(dir>0&&m===11){setSelYear(y=>y+1);return 0;}if(dir<0&&m===0){setSelYear(y=>y-1);return 11;}return m+dir;});}else setSelYear(y=>y+dir);};
+  return(
+    <div style={{padding:"0 0 80px"}}>
+      <div style={{display:"flex",gap:6,marginBottom:12}}>
+        {["week","month","year"].map(p=>(
+          <button key={p} onClick={()=>setPeriod(p)} style={{flex:1,padding:"9px 4px",borderRadius:10,border:"none",cursor:"pointer",fontSize:11,fontWeight:700,background:period===p?"#a855f7":"#1e293b",color:period===p?"#fff":"#64748b"}}>
+            {p.charAt(0).toUpperCase()+p.slice(1)}
+          </button>
+        ))}
+      </div>
+      <div style={{...s,display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+        <button onClick={()=>nav(-1)} style={{background:"#1e293b",border:"none",color:"#a855f7",fontSize:18,cursor:"pointer",padding:"4px 10px",borderRadius:8}}>‹</button>
+        <div style={{textAlign:"center"}}>
+          <div style={{color:"#f1f5f9",fontSize:13,fontWeight:700}}>{periodLabel}</div>
+          <div style={{color:"#64748b",fontSize:10}}>{dates.length} days</div>
+        </div>
+        <button onClick={()=>nav(1)} style={{background:"#1e293b",border:"none",color:"#a855f7",fontSize:18,cursor:"pointer",padding:"4px 10px",borderRadius:8}}>›</button>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
+        {[{l:"DISCIPLINE",v:`${avgHabitPct}%`,c:"#a855f7"},{l:"WORKOUTS",v:workoutDays,c:"#00e5ff"},{l:"WIN RATE",v:winRate+"%",c:"#10b981"},{l:"PERFECT DAYS",v:perfectDays,c:"#f59e0b"},{l:"TRADES",v:periodTrades.length,c:"#f59e0b"},{l:"SPENT",v:`₹${(totalSpent/1000).toFixed(1)}k`,c:"#ef4444"}].map(c=>(
+          <div key={c.l} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
+            <div style={{color:"#64748b",fontSize:8,letterSpacing:1}}>{c.l}</div>
+            <div style={{color:c.c,fontSize:18,fontWeight:900}}>{c.v}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{display:"flex",gap:6,marginBottom:12,overflowX:"auto",paddingBottom:2}}>
+        {sections.map(sec=>(
+          <button key={sec} onClick={()=>setSection(sec)} style={{flexShrink:0,padding:"6px 12px",borderRadius:20,border:"none",cursor:"pointer",fontSize:11,fontWeight:700,background:section===sec?"#a855f7":"#1e293b",color:section===sec?"#fff":"#64748b"}}>
+            {secIcons[sec]} {sec.charAt(0).toUpperCase()+sec.slice(1)}
+          </button>
+        ))}
+      </div>
+      {section==="habits"&&(
+        <>
+          <div style={s}>
+            <div style={{color:"#64748b",fontSize:10,letterSpacing:2,marginBottom:10}}>90-DAY DISCIPLINE HEATMAP</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:2}}>
+              {heatDates.map(d=>{const cnt=HABITS.filter(h=>habitLog[d]?.[h.id]).length;const pct=cnt/HABITS.length;const bg=pct===0?"#1e293b":pct<0.4?"#581c87":pct<0.7?"#7c3aed":pct<1?"#a855f7":"#c084fc";return <div key={d} title={`${d}: ${cnt}/8`} style={{width:8,height:8,borderRadius:1.5,background:bg}}/>;})}
+            </div>
+            <div style={{display:"flex",gap:6,marginTop:8,alignItems:"center"}}>
+              <span style={{color:"#64748b",fontSize:9}}>Less</span>
+              {["#1e293b","#581c87","#7c3aed","#a855f7","#c084fc"].map(c=><div key={c} style={{width:8,height:8,borderRadius:1.5,background:c}}/>)}
+              <span style={{color:"#64748b",fontSize:9}}>More</span>
+            </div>
+          </div>
+          <div style={s}>
+            <div style={{color:"#64748b",fontSize:10,letterSpacing:2,marginBottom:10}}>HABIT COMPLETION RATE</div>
+            {habitData.map(h=>(
+              <MiniBar key={h.id} label={`${h.icon} ${h.label}`} value={h.done} max={dates.length} color={h.pct>=80?"#a855f7":h.pct>=50?"#f59e0b":"#ef4444"} sub={`${h.done}/${dates.length} days (${h.pct}%)`}/>
+            ))}
+          </div>
+          <div style={s}>
+            <div style={{color:"#64748b",fontSize:10,letterSpacing:2,marginBottom:10}}>DISCIPLINE TREND</div>
+            <div style={{display:"flex",gap:3,alignItems:"flex-end",height:70}}>
+              {chartBuckets.map((b,i)=>(
+                <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+                  <div style={{width:"100%",height:60,position:"relative",background:"#1e293b",borderRadius:3}}>
+                    <div style={{position:"absolute",bottom:0,width:"100%",height:`${b.habitPct}%`,background:b.habitPct>=80?"#a855f7":b.habitPct>=50?"#f59e0b":"#ef4444",borderRadius:3,transition:"height .4s"}}/>
+                  </div>
+                  <div style={{color:"#64748b",fontSize:8}}>{b.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+      {section==="workout"&&(
+        <>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+            {[{l:"Sessions Done",v:workoutDays,c:"#00e5ff",sub:`of ${dates.length} days`},{l:"Completion Rate",v:workoutPct+"%",c:"#10b981",sub:"of this period"}].map(c=>(
+              <div key={c.l} style={{...s,textAlign:"center",marginBottom:0}}>
+                <div style={{color:"#64748b",fontSize:10}}>{c.l}</div>
+                <div style={{color:c.c,fontSize:28,fontWeight:900}}>{c.v}</div>
+                <div style={{color:"#64748b",fontSize:10}}>{c.sub}</div>
+              </div>
+            ))}
+          </div>
+          <div style={s}>
+            <div style={{color:"#64748b",fontSize:10,letterSpacing:2,marginBottom:10}}>WORKOUT CALENDAR</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:3}}>
+              {dates.map(d=>{const done=workoutLog[d]?.done;return(
+                <div key={d} style={{width:period==="week"?36:period==="month"?20:8,height:period==="week"?36:period==="month"?20:8,borderRadius:period==="week"?8:4,background:done?"#00e5ff":"#1e293b",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  {period==="week"&&<span style={{fontSize:8,color:done?"#000":"#475569"}}>{new Date(d).getDate()}</span>}
+                  {period==="month"&&<span style={{fontSize:7,color:done?"#000":"#475569"}}>{new Date(d).getDate()}</span>}
+                </div>
+              );})}
+            </div>
+          </div>
+        </>
+      )}
+      {section==="meals"&&(
+        <>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+            {[{l:"Days Tracked",v:mealDays,c:"#f59e0b",sub:`of ${dates.length} days`},{l:"Full Meal Days",v:fullMealDays,c:"#10b981",sub:"3+ meals logged"}].map(c=>(
+              <div key={c.l} style={{...s,textAlign:"center",marginBottom:0}}>
+                <div style={{color:"#64748b",fontSize:10}}>{c.l}</div>
+                <div style={{color:c.c,fontSize:28,fontWeight:900}}>{c.v}</div>
+                <div style={{color:"#64748b",fontSize:10}}>{c.sub}</div>
+              </div>
+            ))}
+          </div>
+          <div style={s}>
+            <div style={{color:"#64748b",fontSize:10,letterSpacing:2,marginBottom:6}}>MEAL COMPLIANCE</div>
+            <MiniBar label="Days with any meal logged" value={mealDays} max={dates.length} color="#f59e0b" sub={`${Math.round((mealDays/dates.length)*100)}%`}/>
+            <MiniBar label="Full meal days (3+ meals)" value={fullMealDays} max={dates.length} color="#10b981" sub={`${Math.round((fullMealDays/dates.length)*100)}%`}/>
+          </div>
+        </>
+      )}
+      {section==="trading"&&(
+        <>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
+            {[{l:"TOTAL",v:periodTrades.length,c:"#f59e0b"},{l:"WINS",v:wins,c:"#10b981"},{l:"LOSSES",v:losses,c:"#ef4444"},{l:"BE",v:be,c:"#64748b"},{l:"WIN RATE",v:winRate+"%",c:"#00e5ff"},{l:"AVG SCORE",v:avgScore+"/5",c:"#a855f7"}].map(c=>(
+              <div key={c.l} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
+                <div style={{color:"#64748b",fontSize:8,letterSpacing:1}}>{c.l}</div>
+                <div style={{color:c.c,fontSize:18,fontWeight:900}}>{c.v}</div>
+              </div>
+            ))}
+          </div>
+          <div style={s}>
+            <div style={{color:"#64748b",fontSize:10,letterSpacing:2,marginBottom:10}}>SESSION BREAKDOWN</div>
+            <MiniBar label="London Open" value={londonTrades} max={periodTrades.length||1} color="#00e5ff" sub={`${londonTrades} trades`}/>
+            <MiniBar label="New York Open" value={nyTrades} max={periodTrades.length||1} color="#f59e0b" sub={`${nyTrades} trades`}/>
+            <MiniBar label="Win Rate" value={wins} max={periodTrades.length||1} color="#10b981" sub={`${winRate}%`}/>
+          </div>
+        </>
+      )}
+      {section==="budget"&&(
+        <>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+            {[{l:"Total Spent",v:`₹${totalSpent.toLocaleString()}`,c:"#ef4444"},{l:"Avg/Day",v:`₹${avgDailySpend.toLocaleString()}`,c:"#f59e0b"},{l:"Days Over Budget",v:overBudgetDays,c:"#ef4444"},{l:"vs Budget",v:dailyLimit*dates.length>=totalSpent?"✓ Under":"✗ Over",c:dailyLimit*dates.length>=totalSpent?"#10b981":"#ef4444"}].map(c=>(
+              <div key={c.l} style={{...s,textAlign:"center",marginBottom:0}}>
+                <div style={{color:"#64748b",fontSize:10}}>{c.l}</div>
+                <div style={{color:c.c,fontSize:c.v.length>8?16:22,fontWeight:900}}>{c.v}</div>
+              </div>
+            ))}
+          </div>
+          <div style={s}>
+            <div style={{color:"#64748b",fontSize:10,letterSpacing:2,marginBottom:10}}>SPENDING BY CATEGORY</div>
+            {Object.entries(catTotals).sort((a,b)=>b[1]-a[1]).map(([cat,amt])=>(
+              <MiniBar key={cat} label={cat} value={amt} max={totalSpent||1} color={catColors[cat]||"#64748b"} sub={`₹${amt.toLocaleString()} (${Math.round((amt/totalSpent)*100)}%)`}/>
+            ))}
+            {Object.keys(catTotals).length===0&&<div style={{color:"#475569",fontSize:12}}>No expenses logged for this period.</div>}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function App(){
+  const[activeTab,setActiveTab]=useState("Overview");
+  const[habitLog,setHabitLog]=useStorage("habitLog",{});
+  const[workoutLog,setWorkoutLog]=useStorage("workoutLog",{});
+  const[mealLog,setMealLog]=useStorage("mealLog",{});
+  const[trades,setTrades]=useStorage("trades",[]);
+  const[budget,setBudget]=useStorage("budget",{daily:5000,expenses:[]});
+  const toggleHabit=(id)=>{const dk=todayKey();const log=habitLog[dk]||{};setHabitLog({...habitLog,[dk]:{...log,[id]:!log[id]}});};
+  const tabIcons={Overview:"⚡",Workout:"💪",Meals:"🍱",Trading:"₿",Habits:"🔥",Budget:"₹",Analytics:"📊"};
+  return(
+    <div style={{minHeight:"100vh",background:"#020817",color:"#f1f5f9",fontFamily:"'DM Sans',system-ui,-apple-system,sans-serif",maxWidth:480,margin:"0 auto",position:"relative"}}>
+      <div style={{position:"sticky",top:0,zIndex:100,background:"#020817cc",backdropFilter:"blur(12px)",padding:"14px 20px 8px",borderBottom:"1px solid #1e293b"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div>
+            <div style={{color:"#64748b",fontSize:10,letterSpacing:3}}>DAILY TRACKER</div>
+            <div style={{color:"#f1f5f9",fontSize:16,fontWeight:800}}>{new Date().toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"})}</div>
+          </div>
+          <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#a855f7,#00e5ff)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>⚡</div>
+        </div>
+      </div>
+      <div style={{padding:"16px 16px 0"}}>
+        {activeTab==="Overview"&&<Overview habits={toggleHabit} habitLog={habitLog} workoutLog={workoutLog} mealLog={mealLog} trades={trades} budget={budget}/>}
+        {activeTab==="Workout"&&<Workout workoutLog={workoutLog} setWorkoutLog={setWorkoutLog}/>}
+        {activeTab==="Meals"&&<Meals mealLog={mealLog} setMealLog={setMealLog}/>}
+        {activeTab==="Trading"&&<Trading trades={trades} setTrades={setTrades}/>}
+        {activeTab==="Habits"&&<HabitsTab habitLog={habitLog} setHabitLog={setHabitLog}/>}
+        {activeTab==="Budget"&&<Budget budget={budget} setBudget={setBudget}/>}
+        {activeTab==="Analytics"&&<Analytics habitLog={habitLog} workoutLog={workoutLog} mealLog={mealLog} trades={trades} budget={budget}/>}
+      </div>
+      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"#0f172acc",backdropFilter:"blur(16px)",borderTop:"1px solid #1e293b",display:"flex",zIndex:200}}>
+        {TABS.map(tab=>{
+          const active=activeTab===tab;
+          return(
+            <button key={tab} onClick={()=>setActiveTab(tab)} style={{flex:1,padding:"8px 2px 10px",border:"none",background:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+              <span style={{fontSize:15}}>{tabIcons[tab]}</span>
+              <span style={{fontSize:7,fontWeight:700,color:active?"#a855f7":"#475569"}}>{tab.slice(0,3).toUpperCase()}</span>
+              {active&&<div style={{width:16,height:2,background:"#a855f7",borderRadius:1}}/>}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
